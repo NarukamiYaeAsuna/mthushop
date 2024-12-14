@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý bàn</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            width: 80%;
+        }
+        button {
+            padding: 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+            display: none;
+            z-index: 1000;
+            width: 60%;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        .modal.active {
+            display: block;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 999;
+        }
+        .overlay.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        tfoot {
+            font-weight: bold;
+        }
+        textarea {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .actions {
+            margin-top: 20px;
+            text-align: right;
+        }
+        .actions button {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Buttons for tables -->
+        <button onclick="showModal(1)">Bàn 1</button>
+        <button onclick="showModal(2)">Bàn 2</button>
+        <button onclick="showModal(3)">Bàn 3</button>
+        <button onclick="showModal(4)">Bàn 4</button>
+        <button onclick="showModal(5)">Bàn 5</button>
+        <button onclick="showModal(5)">Bàn 6</button>
+        <button onclick="showModal(5)">Bàn 7</button>
+        <button onclick="showModal(5)">Bàn 8</button>
+        <button onclick="showModal(5)">Bàn 9</button>
+        <button onclick="showModal(5)">Bàn 10</button>
+        
+        <!-- Add more buttons as needed -->
+    </div>
+
+    <div class="modal" id="modal">
+        <h2 id="modal-title">Chi tiết Bàn</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tên sản phẩm</th>
+                    <th>Giá</th>
+                    <th>Số lượng</th>
+                    <th>Thành tiền</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody id="product-rows">
+                <!-- Rows will be dynamically added here -->
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3">Tổng cộng</td>
+                    <td id="total-price">0</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+        <textarea id="notes" placeholder="Nhập ghi chú..."></textarea>
+        <div class="actions">
+            <button onclick="addRow()">Thêm sản phẩm</button>
+            <button onclick="closeModal()">Lưu & Đóng</button>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeModal()"></div>
+
+    <script>
+        let tablesData = JSON.parse(localStorage.getItem('tablesData')) || {};
+        let currentTable = null;
+
+        function saveData() {
+            localStorage.setItem('tablesData', JSON.stringify(tablesData));
+        }
+
+        function showModal(tableId) {
+            currentTable = tableId;
+            const modal = document.getElementById('modal');
+            const overlay = document.getElementById('overlay');
+            const productRows = document.getElementById('product-rows');
+            const notes = document.getElementById('notes');
+
+            productRows.innerHTML = '';
+            notes.value = tablesData[tableId]?.notes || '';
+
+            (tablesData[tableId]?.products || []).forEach(product => {
+                addRow(product.name, product.price, product.quantity);
+            });
+
+            calculateTotal();
+            modal.classList.add('active');
+            overlay.classList.add('active');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            const overlay = document.getElementById('overlay');
+            const productRows = Array.from(document.getElementById('product-rows').children);
+            const notes = document.getElementById('notes').value;
+
+            const products = productRows.map(row => {
+                const name = row.querySelector('.name').textContent;
+                const price = parseFloat(row.querySelector('.price').textContent) || 0;
+                const quantity = parseInt(row.querySelector('.quantity').textContent) || 0;
+                return { name, price, quantity };
+            });
+
+            tablesData[currentTable] = { products, notes };
+            saveData();
+            modal.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+
+        function addRow(name = '', price = 0, quantity = 1) {
+            const productRows = document.getElementById('product-rows');
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+                <td contenteditable="true" class="name">${name}</td>
+                <td contenteditable="true" class="price">${price}</td>
+                <td contenteditable="true" class="quantity">${quantity}</td>
+                <td class="total">${price * quantity}</td>
+                <td><button onclick="removeRow(this)">Xóa</button></td>
+            `;
+
+            productRows.appendChild(row);
+            row.querySelectorAll('[contenteditable]').forEach(cell => {
+                cell.addEventListener('input', calculateTotal);
+            });
+        }
+
+        function removeRow(button) {
+            button.closest('tr').remove();
+            calculateTotal();
+        }
+
+        function calculateTotal() {
+            let total = 0;
+            const rows = document.querySelectorAll('#product-rows tr');
+            rows.forEach(row => {
+                const price = parseFloat(row.querySelector('.price').textContent) || 0;
+                const quantity = parseInt(row.querySelector('.quantity').textContent) || 0;
+                const rowTotal = price * quantity;
+                row.querySelector('.total').textContent = rowTotal;
+                total += rowTotal;
+            });
+            document.getElementById('total-price').textContent = total;
+        }
+    </script>
+</body>
+</html>
